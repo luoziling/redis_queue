@@ -1,0 +1,91 @@
+server:
+  port: 8080
+  tomcat:
+    uri-encoding: UTF-8
+  servlet:
+    encoding:
+      force: true
+      charset: UTF-8
+      enabled: true
+spring:
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+
+  main:
+    allow-bean-definition-overriding: true
+  application:
+    name: redis
+  redis:
+    #默认配置 主
+    host: 127.0.0.1
+    port: 6379
+    password:
+    database: 0
+    timeout: 5000
+    lettuce:
+      pool:
+        max-active: 100
+        max-idle: 30
+        min-idle: 20
+        max-wait: 500
+    # 从
+    slave:
+      host: 127.0.0.1
+      port: 6379
+      password:
+      database: 0
+      timeout: 5000
+      lettuce:
+        pool:
+          max-active: 100
+          max-idle: 30
+          min-idle: 20
+          max-wait: 500
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/fake_command?serverTimezone=GMT%2B8&allowMultiQueries=true&useUnicode=true&useSSL=false&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&tinyInt1isBit=false&rewriteBatchedStatements=true
+    name: mysql
+    type: com.alibaba.druid.pool.DruidDataSource
+    druid:
+      # 默认配置
+      wdef:
+        url: jdbc:mysql://localhost:3306/fake_command?serverTimezone=GMT%2B8&allowMultiQueries=true&useUnicode=true&useSSL=false&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&tinyInt1isBit=false&rewriteBatchedStatements=true
+        username: root
+        password: 123456
+      rdef:
+        url: jdbc:mysql://localhost:3306/fake_command?serverTimezone=GMT%2B8&allowMultiQueries=true&useUnicode=true&useSSL=false&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&tinyInt1isBit=false
+        username: root
+        password: 123456
+      #base
+      #      driver-class-name: com.mysql.cj.jdbc.Driver
+      #监控统计拦截的filters
+      filters: stat
+      #配置池初始化大小/最小/最大
+      initial-size: 5
+      min-idle: 1
+      max-active: 20
+      #获取连接等待超时时间
+      max-wait: 60000
+      #间隔多久进行一次检测，检测需要关闭的空闲连接
+      time-between-eviction-runs-millis: 60000
+      #一个连接在池中最小生存的时间
+      min-evictable-idle-time-millis: 300000
+      validation-query: SELECT 1
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      #打开PSCache，并指定每个连接上PSCache的大小。oracle设为true，mysql设为false。分库分表较多推荐设置为false
+      pool-prepared-statements: false
+      max-pool-prepared-statement-per-connection-size: 20
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true  #开启驼峰
+# 数据字典缓存
+dictredis:
+  #默认配置 主
+  host: 127.0.0.1
+  port: 6379
+  password:
+  database: 1
