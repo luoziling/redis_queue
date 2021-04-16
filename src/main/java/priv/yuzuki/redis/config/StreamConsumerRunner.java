@@ -2,7 +2,6 @@ package priv.yuzuki.redis.config;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.DisposableBean;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -18,6 +17,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ErrorHandler;
 
+import javax.annotation.Resource;
 import java.time.Duration;
 
 /**
@@ -34,22 +34,32 @@ public class StreamConsumerRunner implements ApplicationRunner, DisposableBean {
 //	@Value("${redis.stream.consumer}")
 //	private String consumer;
 
-	@Autowired
+	@Resource
 	RedisConnectionFactory redisConnectionFactory;
 
-	@Autowired
+	@Resource
 	ThreadPoolTaskExecutor threadPoolTaskExecutor;
 
-	@Autowired
+	@Resource
 	StreamMessageListener streamMessageListener;
 
-	@Autowired
+	@Resource
 	StringRedisTemplate stringRedisTemplate;
+
+	@Resource
+	RedisStreamConfig redisStreamConfig;
 
 	private StreamMessageListenerContainer<String, MapRecord<String, String, String>> streamMessageListenerContainer;
 
 	@Override
 	public void run(ApplicationArguments args) throws Exception {
+//		try {
+//			StreamInfo.XInfoStream info = stringRedisTemplate.opsForStream().info(redisStreamConfig.getStream());
+//		} catch (Exception e) {
+//			stringRedisTemplate.opsForStream().add(redisStreamConfig.getStream(),new HashMap<String,String>());
+//			e.printStackTrace();
+//		}
+//		stringRedisTemplate.opsForStream().createGroup(redisStreamConfig.getStream(),redisStreamConfig.getConsumerGroup());
 
 		// 创建配置对象
 		StreamMessageListenerContainerOptions<String, MapRecord<String, String, String>> streamMessageListenerContainerOptions = StreamMessageListenerContainerOptions
@@ -77,8 +87,8 @@ public class StreamConsumerRunner implements ApplicationRunner, DisposableBean {
 				.create(this.redisConnectionFactory, streamMessageListenerContainerOptions);
 
 		// 使用监听容器对象开始监听消费（使用的是手动确认方式）
-		streamMessageListenerContainer.receive(Consumer.from("group-1", "consumer-1"),
-				StreamOffset.create("mystream", ReadOffset.lastConsumed()), this.streamMessageListener);
+		streamMessageListenerContainer.receive(Consumer.from(redisStreamConfig.getConsumerGroup(), redisStreamConfig.getConsumer()),
+				StreamOffset.create(redisStreamConfig.getStream(), ReadOffset.lastConsumed()), this.streamMessageListener);
 
 		this.streamMessageListenerContainer = streamMessageListenerContainer;
 		// 启动监听

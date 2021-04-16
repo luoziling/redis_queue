@@ -18,6 +18,7 @@ spring:
     name: redis
   redis:
     #默认配置 主
+#    host: 192.168.198.121
     host: 127.0.0.1
     port: 6379
     password:
@@ -89,3 +90,8 @@ dictredis:
   port: 6379
   password:
   database: 1
+
+stream:
+  stream: noticeStream
+  consumerGroup: noticeGroup
+  consumer: notifier1
