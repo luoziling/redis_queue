@@ -95,3 +95,4 @@ stream:
   stream: noticeStream
   consumerGroup: noticeGroup
   consumer: notifier1
+  queueSize: 1024

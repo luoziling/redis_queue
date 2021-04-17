@@ -17,4 +17,5 @@ public class RedisStreamConfig {
 	private String stream;
 	private String consumerGroup;
 	private String consumer;
+	private Integer queueSize;
 }

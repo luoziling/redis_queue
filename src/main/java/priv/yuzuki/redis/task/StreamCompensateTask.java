@@ -12,10 +12,7 @@ import org.springframework.stereotype.Component;
 import priv.yuzuki.redis.config.RedisStreamConfig;
 
 import javax.annotation.Resource;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @program: redis
@@ -86,6 +83,13 @@ public class StreamCompensateTask {
 		if (CollUtil.isNotEmpty(pendingMessageList)){
 			log.info("wrongList = " + pendingMessageList);
 			throw new RuntimeException("pendingList 弥补出错 value:" + pendingMessageList);
+		}
+
+		// 容量大小判断
+		Long size = stringRedisTemplate.opsForStream().size(redisStreamConfig.getStream());
+		if (Objects.nonNull(size) && size>redisStreamConfig.getQueueSize()){
+			// 缩容
+			stringRedisTemplate.opsForStream().trim(redisStreamConfig.getStream(),redisStreamConfig.getQueueSize()/2);
 		}
 
 
