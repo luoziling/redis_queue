@@ -28,7 +28,7 @@ public class StreamMessageListener implements StreamListener<String, MapRecord<S
 	@Resource
 	StringRedisTemplate stringRedisTemplate;
 
-	public static int count = 0;
+	public static int count = 1;
 
 	@Override
 	public void onMessage(MapRecord<String, String, String> message) {

@@ -33,7 +33,7 @@ public class StreamCompensateTask {
 	public static int keyCount = 0;
 	public static int valueCount = 0;
 	public static final int LIMIT_SIZE = 3;
-	public static int count = 0;
+	public static int count = 1;
 
 	@Scheduled(cron = "0/5 * * * * ?")
 	@Async
@@ -50,6 +50,7 @@ public class StreamCompensateTask {
 	@Scheduled(cron = "0 0/1 * * * ?")
 	@Async
 	public void pendingHandler(){
+
 		Consumer notifier = Consumer.from(redisStreamConfig.getConsumerGroup(), redisStreamConfig.getConsumer());
 		List<PendingMessage> pendingMessageList = getPendingMessages(notifier);
 		for (int i = 0; i < LIMIT_SIZE; i++) {
@@ -86,6 +87,8 @@ public class StreamCompensateTask {
 			log.info("wrongList = " + pendingMessageList);
 			throw new RuntimeException("pendingList 弥补出错 value:" + pendingMessageList);
 		}
+
+
 
 	}
 
