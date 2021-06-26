@@ -1,24 +1,25 @@
-package priv.yuzuki.redis.config;
+package priv.yuzuki.redis;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.connection.stream.Consumer;
-import org.springframework.data.redis.connection.stream.MapRecord;
-import org.springframework.data.redis.connection.stream.ReadOffset;
-import org.springframework.data.redis.connection.stream.StreamOffset;
+import org.springframework.data.redis.connection.stream.*;
+import org.springframework.data.redis.core.StreamOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer.StreamMessageListenerContainerOptions;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
+import org.springframework.util.Assert;
 import org.springframework.util.ErrorHandler;
+import priv.yuzuki.redis.config.RedisStreamConfig;
 
 import javax.annotation.Resource;
 import java.time.Duration;
+import java.util.List;
 
 /**
  * @program: redis
@@ -29,12 +30,8 @@ import java.time.Duration;
 @Slf4j
 @Component
 public class StreamConsumerRunner implements ApplicationRunner, DisposableBean {
-//	static final Logger LOGGER = LoggerFactory.getLogger(StreamConsumerRunner.class);
 
-//	@Value("${redis.stream.consumer}")
-//	private String consumer;
-
-	@Resource
+	@Resource(name = "factory1")
 	RedisConnectionFactory redisConnectionFactory;
 
 	@Resource
@@ -43,7 +40,7 @@ public class StreamConsumerRunner implements ApplicationRunner, DisposableBean {
 	@Resource
 	StreamMessageListener streamMessageListener;
 
-	@Resource
+	@Resource(name = "noticeStringRedisTemplate")
 	StringRedisTemplate stringRedisTemplate;
 
 	@Resource
@@ -53,13 +50,6 @@ public class StreamConsumerRunner implements ApplicationRunner, DisposableBean {
 
 	@Override
 	public void run(ApplicationArguments args) throws Exception {
-//		try {
-//			StreamInfo.XInfoStream info = stringRedisTemplate.opsForStream().info(redisStreamConfig.getStream());
-//		} catch (Exception e) {
-//			stringRedisTemplate.opsForStream().add(redisStreamConfig.getStream(),new HashMap<String,String>());
-//			e.printStackTrace();
-//		}
-//		stringRedisTemplate.opsForStream().createGroup(redisStreamConfig.getStream(),redisStreamConfig.getConsumerGroup());
 
 		// 创建配置对象
 		StreamMessageListenerContainerOptions<String, MapRecord<String, String, String>> streamMessageListenerContainerOptions = StreamMessageListenerContainerOptions
@@ -71,9 +61,11 @@ public class StreamConsumerRunner implements ApplicationRunner, DisposableBean {
 				// 消息消费异常的handler
 				.errorHandler(new ErrorHandler() {
 					@Override
-					public void handleError(Throwable t) {
+					public void handleError(Throwable e) {
 						// throw new RuntimeException(t);
-						t.printStackTrace();
+						// 日志 + 报警
+						log.error("消费特殊异常：{}",e.getMessage());
+						// todo 可发送邮件报警
 					}
 				})
 				// 超时时间，设置为0，表示不超时（超时后会抛出异常）
@@ -86,14 +78,43 @@ public class StreamConsumerRunner implements ApplicationRunner, DisposableBean {
 		StreamMessageListenerContainer<String, MapRecord<String, String, String>> streamMessageListenerContainer = StreamMessageListenerContainer
 				.create(this.redisConnectionFactory, streamMessageListenerContainerOptions);
 
-		// 使用监听容器对象开始监听消费（使用的是手动确认方式）
-		streamMessageListenerContainer.receive(Consumer.from(redisStreamConfig.getConsumerGroup(), redisStreamConfig.getConsumer()),
-				StreamOffset.create(redisStreamConfig.getStream(), ReadOffset.lastConsumed()), this.streamMessageListener);
+		// stream及consumer group 初始化
+		prepareChannelAndGroup(stringRedisTemplate.opsForStream(), redisStreamConfig.getStream(), redisStreamConfig.getConsumerGroup());
+
+		// 使用监听容器对象开始监听消费（使用的是手动确认方式），指定偏移为从上次消费过的位置开始继续消费
+		// 开启多个消费者
+		List<String> consumers = redisStreamConfig.getConsumers();
+		for (String consumer : consumers) {
+			streamMessageListenerContainer.receive(Consumer.from(redisStreamConfig.getConsumerGroup(), consumer),
+					StreamOffset.create(redisStreamConfig.getStream(), ReadOffset.lastConsumed()), this.streamMessageListener);
+		}
 
 		this.streamMessageListenerContainer = streamMessageListenerContainer;
 		// 启动监听
 		this.streamMessageListenerContainer.start();
 
+	}
+
+	/**
+	 * 初始化stream以及group
+	 * @param ops redis操作对象
+	 * @param channel stream name
+	 * @param group consumer group name
+	 */
+	private void prepareChannelAndGroup(StreamOperations<String, ?, ?> ops, String channel, String group) {
+		String status = "OK";
+		try {
+			StreamInfo.XInfoGroups groups = ops.groups(channel);
+			if (groups.stream().noneMatch(xInfoGroup -> group.equals(xInfoGroup.groupName()))) {
+				status = ops.createGroup(channel, group);
+			}
+		} catch (Exception exception) {
+			RecordId initialRecord = ops.add(ObjectRecord.create(channel, "Initial Record"));
+			Assert.notNull(initialRecord, "Cannot initialize stream with key '" + channel + "'");
+			status = ops.createGroup(channel, ReadOffset.from(initialRecord), group);
+		} finally {
+			Assert.isTrue("OK".equals(status), "Cannot create group with name '" + group + "'");
+		}
 	}
 
 	@Override

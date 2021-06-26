@@ -1,4 +1,4 @@
-package priv.yuzuki.redis.config;
+package priv.yuzuki.redis;
 
 
 import lombok.extern.slf4j.Slf4j;
@@ -7,6 +7,7 @@ import org.springframework.data.redis.connection.stream.RecordId;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.stream.StreamListener;
 import org.springframework.stereotype.Component;
+import priv.yuzuki.redis.config.RedisStreamConfig;
 
 import javax.annotation.Resource;
 import java.util.Map;
@@ -28,6 +29,9 @@ public class StreamMessageListener implements StreamListener<String, MapRecord<S
 	@Resource
 	StringRedisTemplate stringRedisTemplate;
 
+	@Resource
+	NoticeMediator noticeMediator;
+
 	public static int count = 1;
 
 	@Override
@@ -40,22 +44,17 @@ public class StreamMessageListener implements StreamListener<String, MapRecord<S
 		Map<String, String> body = message.getValue();
 
 		log.info("stream message。messageId={}, stream={}, body={}", messageId, message.getStream(), body);
-
-		// 通过RedisTemplate手动确认消息
-//		PendingMessagesSummary pendingMessagesSummary = stringRedisTemplate.opsForStream().pending(redisStreamConfig.getStream(), redisStreamConfig.getConsumerGroup());
-
 		try {
 			// 模拟失败
-			if (count++ %5 == 0){
-				log.info("message = " + message);
-				throw new RuntimeException("出错啦");
-			}
+//			if (count++ %5 == 0){
+//				log.info("message = " + message);
+//				throw new RuntimeException("出错啦");
+//			}
+			noticeMediator.sendNotice(body);
 			this.stringRedisTemplate.opsForStream().acknowledge(redisStreamConfig.getConsumerGroup(), message);
 		} catch (RuntimeException e) {
 			// todo 可发送邮件通知
 			e.printStackTrace();
 		}
-
-//		stringRedisTemplate.opsForStream().createGroup()
 	}
 }

@@ -19,7 +19,7 @@ spring:
   redis:
     #默认配置 主
 #    host: 192.168.198.121
-    host: 127.0.0.1
+    host: 192.168.198.120
     port: 6379
     password:
     database: 0
@@ -32,7 +32,7 @@ spring:
         max-wait: 500
     # 从
     slave:
-      host: 127.0.0.1
+      host: 192.168.198.120
       port: 6379
       password:
       database: 0
@@ -83,16 +83,24 @@ mybatis:
   mapper-locations: classpath:mapper/*.xml
   configuration:
     map-underscore-to-camel-case: true  #开启驼峰
-# 数据字典缓存
-dictredis:
-  #默认配置 主
-  host: 127.0.0.1
-  port: 6379
-  password:
-  database: 1
 
 stream:
   stream: noticeStream
   consumerGroup: noticeGroup
-  consumer: notifier1
-  queueSize: 1024
+  consumers:
+    - notifier1
+    - notifier2
+    - notifier3
+    - notifier4
+  noticeKey: message
+  queueSize: 10000
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    password:
+    database: 8
+    timeout: 5000
+    maxActive: 100
+    maxIdle: 30
+    minIdle: 20
+    maxWait: 500

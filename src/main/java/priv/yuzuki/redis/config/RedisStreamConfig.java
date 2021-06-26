@@ -4,6 +4,8 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 /**
  * @program: redis
  * @author: wangzibai01
@@ -16,6 +18,8 @@ import org.springframework.stereotype.Component;
 public class RedisStreamConfig {
 	private String stream;
 	private String consumerGroup;
-	private String consumer;
+	//	private String consumer;
+	private List<String> consumers;
+	private String noticeKey;
 	private Integer queueSize;
 }
